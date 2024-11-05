@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Función Lambda para procesamiento y tema SNS para notificaciones'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'MyEnvironment'
+  SNSNotificationEmail:
+    Description: 'Dirección de correo electrónico para recibir notificaciones SNS'
+    Type: String
+  DataQueueArn:
+    Description: 'ARN de la cola SQS de datos'
+    Type: String
+  LambdaRoleArn:
+    Description: 'ARN del rol IAM existente para la función Lambda'
+    Type: String
+
+Resources:
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${EnvironmentName}-AlertsTopic'
+      Subscription:
+        - Endpoint: !Ref SNSNotificationEmail
+          Protocol: email
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-DataProcessor'
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      Role: !Ref LambdaRoleArn  # Usando el rol existente
+      Timeout: 30
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+
+          def lambda_handler(event, context):
+              sns_client = boto3.client('sns')
+              dynamodb = boto3.resource('dynamodb')
+              table = dynamodb.Table('sensor_data')  # Asegúrate de que esta tabla existe
+
+              for record in event['Records']:
+                  payload = json.loads(record['body'])
+                  # Procesar los datos del sensor
+                  sensor_value = payload['value']
+                  # Guardar en DynamoDB
+                  table.put_item(Item=payload)
+                  # Verificar umbrales y enviar notificación si es necesario
+                  if sensor_value > 100:  # Umbral de ejemplo
+                      sns_client.publish(
+                          TopicArn=os.environ['SNS_TOPIC_ARN'],
+                          Message=f"Valor alto detectado: {sensor_value}",
+                          Subject="Alerta de Sensor"
+                      )
+
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Procesamiento completado')
+              }
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref AlertsTopic
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: 'sqs.amazonaws.com'
+      SourceArn: !Ref DataQueueArn
+
+  EventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !Ref DataQueueArn
+      FunctionName: !Ref LambdaFunction
+      BatchSize: 10
+      Enabled: true
+
+Outputs:
+  LambdaFunctionArn:
+    Description: 'ARN de la función Lambda'
+    Value: !GetAtt LambdaFunction.Arn
+  SNSTopicArn:
+    Description: 'ARN del tema SNS'
+    Value: !Ref AlertsTopic

@@ -1,0 +1,66 @@
+# opensearch.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Dominio de Amazon OpenSearch Service'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'MyEnvironment'
+  VPCId:
+    Description: 'ID de la VPC'
+    Type: String
+  PrivateSubnetIds:
+    Description: 'IDs de las subredes privadas (separadas por comas)'
+    Type: CommaDelimitedList
+  VPCCidrBlock:
+    Description: 'CIDR block de la VPC'
+    Type: String
+    Default: '10.0.0.0/16'  # Actualiza esto si es diferente
+
+Resources:
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: !Sub '${EnvironmentName}-Domain'
+      EngineVersion: 'OpenSearch_1.0'
+      ClusterConfig:
+        InstanceType: 't3.small.search'
+        InstanceCount: 1
+        ZoneAwarenessEnabled: false
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+      VPCOptions:
+        SubnetIds: !Ref PrivateSubnetIds
+        SecurityGroupIds:
+          - !Ref OpenSearchSecurityGroup
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: 'es:*'
+            Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${EnvironmentName}-Domain/*'
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+
+  OpenSearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'SG para OpenSearch'
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: !Ref VPCCidrBlock  # Permite acceso desde toda la VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-OpenSearch-SG'
+
+Outputs:
+  OpenSearchEndpoint:
+    Description: 'Endpoint del dominio OpenSearch'
+    Value: !GetAtt OpenSearchDomain.DomainEndpoint

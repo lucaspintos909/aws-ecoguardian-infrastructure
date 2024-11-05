@@ -1,0 +1,34 @@
+# dynamodb.yaml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Tabla DynamoDB para datos de sensores'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'MyEnvironment'
+
+Resources:
+  SensorDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'sensor_data'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: 'sensor_id'
+          AttributeType: 'S'
+        - AttributeName: 'timestamp'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'sensor_id'
+          KeyType: 'HASH'
+        - AttributeName: 'timestamp'
+          KeyType: 'RANGE'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-SensorDataTable'
+
+Outputs:
+  TableName:
+    Description: 'Nombre de la tabla DynamoDB'
+    Value: !Ref SensorDataTable

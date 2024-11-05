@@ -1,0 +1,68 @@
+# ec2.yaml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Instancias EC2 en subredes públicas'
+
+Parameters:
+  KeyName:
+    Description: 'Nombre de la clave SSH'
+    Type: AWS::EC2::KeyPair::KeyName
+  VPCId:
+    Description: 'ID de la VPC'
+    Type: String
+  PublicSubnetId:
+    Description: 'ID de la subred pública'
+    Type: String
+  EnvironmentName:
+    Type: String
+    Default: 'MyEnvironment'
+
+Resources:
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Permite acceso SSH y HTTP'
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: '0.0.0.0/0'  # Cambiar por tu IP para mayor seguridad
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-EC2-SG'
+
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      ImageId: ami-0c94855ba95c71c99  # Amazon Linux 2 AMI (actualizar según la región)
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          SubnetId: !Ref PublicSubnetId
+          GroupSet:
+            - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-WebServer'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+
+Outputs:
+  EC2InstanceId:
+    Description: 'ID de la instancia EC2'
+    Value: !Ref WebServerInstance
+  EC2PublicIP:
+    Description: 'IP pública de la instancia EC2'
+    Value: !GetAtt WebServerInstance.PublicIp

@@ -1,0 +1,26 @@
+# s3.yaml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Bucket S3 para almacenamiento de datos'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'myenvironment'
+
+Resources:
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${EnvironmentName}-data-bucket-${AWS::AccountId}'
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-DataBucket'
+
+Outputs:
+  BucketName:
+    Description: 'Nombre del bucket S3'
+    Value: !Ref DataBucket

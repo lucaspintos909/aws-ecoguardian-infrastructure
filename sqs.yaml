@@ -1,0 +1,28 @@
+# sqs.yaml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Cola SQS para datos de sensores'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'MyEnvironment'
+
+Resources:
+  DataQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${EnvironmentName}-DataQueue'
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 86400  # 1 día
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-DataQueue'
+
+Outputs:
+  QueueURL:
+    Description: 'URL de la cola SQS'
+    Value: !Ref DataQueue
+  QueueARN:
+    Description: 'ARN de la cola SQS'
+    Value: !GetAtt DataQueue.Arn

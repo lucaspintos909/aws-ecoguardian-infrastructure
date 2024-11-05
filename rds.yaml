@@ -1,0 +1,71 @@
+# rds.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Instancia RDS en subred privada'
+
+Parameters:
+  VPCId:
+    Description: 'ID de la VPC'
+    Type: String
+  PrivateSubnetIds:
+    Description: 'IDs de las subredes privadas (separadas por comas)'
+    Type: CommaDelimitedList
+  EnvironmentName:
+    Type: String
+    Default: 'MyEnvironment'
+  DBUsername:
+    Description: 'Nombre de usuario de la base de datos'
+    Type: String
+    Default: 'admin'
+  DBPassword:
+    Description: 'Contraseña de la base de datos'
+    Type: String
+    NoEcho: true
+  EC2SecurityGroup:
+    Description: 'ID del Grupo de Seguridad de EC2 que podrá acceder a la base de datos'
+    Type: String
+
+Resources:
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Permite acceso a RDS desde EC2'
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-RDS-SG'
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'Grupo de subredes para RDS'
+      SubnetIds: !Ref PrivateSubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-RDS-SubnetGroup'
+
+  MyDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro  # Cambiado de db.t2.micro
+      Engine: mysql
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      MultiAZ: false
+      PubliclyAccessible: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-MyDB'
+
+Outputs:
+  DBEndpoint:
+    Description: 'Endpoint de la base de datos RDS'
+    Value: !GetAtt MyDBInstance.Endpoint.Address
