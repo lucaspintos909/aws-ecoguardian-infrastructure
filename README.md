@@ -19,11 +19,14 @@ Este informe resume los pasos realizados para desplegar una infraestructura en A
 ## 1. Configuración Inicial
 
 **Configuración de Credenciales AWS**: Se configuraron las credenciales de AWS en el archivo `~/.aws/credentials`.
+
 **Verificación de la Identidad del Usuario**:
     ```bash
     aws sts get-caller-identity
     ```
+
 **Configuración del Perfil AWS**: Se editó el archivo `~/.aws/config` para establecer la región y el formato de salida por defecto.
+
 **Importación de la Clave SSH**:
     ```bash
     mv ~/Downloads/my-ec2-keypair.pem ~/.ssh/
