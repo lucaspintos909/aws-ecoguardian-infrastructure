@@ -83,6 +83,18 @@ aws cloudformation deploy \
 ## 7. Desafíos con el Despliegue de RDS
 Al desplegar RDS, hubo problemas con los parámetros y versiones de base de datos, que se solucionaron ajustando el `DBInstanceClass` y `EngineVersion`.
 
+```bash
+aws cloudformation deploy \
+  --template-file rds.yaml \
+  --stack-name MyRDSStack \
+  --parameter-overrides \
+    VPCId=VPC_ID_DEL_PASO_1 \
+    PrivateSubnetIds=SUBNETS_PRIVADAS_IDS_DEL_PASO_1 \
+    EnvironmentName=MyEnvironment \
+    DBUsername=admin \
+    DBPassword=TuContraseñaSegura
+```
+
 ## 8. Despliegue de Lambda y SNS
 Se desplegó Lambda y SNS con `lambda_sns.yaml` y solucionó errores de dependencias y permisos IAM:
 ```bash
