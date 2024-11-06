@@ -55,6 +55,13 @@ aws cloudformation deploy \
 ## 4. Error y Solución en Despliegue del Bucket S3
 Al desplegar el bucket S3 usando `s3.yaml`, inicialmente el despliegue falló debido a que el nombre contenía mayúsculas. Esto se corrigió usando solo minúsculas en `EnvironmentName`. 
 
+```bash
+aws cloudformation deploy \
+  --template-file s3.yaml \
+  --stack-name MyS3Stack \
+  --parameter-overrides EnvironmentName=myenvironment
+```
+
 ## 5. Despliegue de DynamoDB
 Se creó la tabla DynamoDB `sensor_data` exitosamente:
 ```bash
